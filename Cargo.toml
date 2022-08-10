@@ -1,0 +1,11 @@
+[package]
+name = "rcis"
+version = "0.1.0"
+edition = "2021"
+authors = ["Cale Overstreet"]
+description = "Simple CLI for calculating masses for chemical formulas"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+phf = { version = "0.11", features = ["macros"] }
