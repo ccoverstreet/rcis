@@ -1,3 +1,4 @@
+# This script converts the periodic table csv to a rust phf_map
 
 def main():
 	with open("data/periodic_table.csv") as f:
