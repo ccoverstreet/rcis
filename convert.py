@@ -36,8 +36,7 @@ def parse_csv(f):
 	return field_map, all_data
 
 def create_rust_phf_map(fields, all_data):
-	pre = """
-use phf::phf_map;
+	pre = """use phf::phf_map;
 use std::fmt;
 
 pub struct Element {

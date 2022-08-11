@@ -9,7 +9,8 @@ fn get_user_input(prompt: &str) -> String {
 
     let mut input = String::new();
     let _ = io::stdin().read_line(&mut input);
-    return input.trim().to_string();
+
+    input.trim().to_string()
 }
 
 
@@ -20,18 +21,12 @@ struct Comp {
 }
 
 
-
-fn parse_chemical_formula(input: &str) -> Vec<Comp> {
-    // First convert the string into just tokens that are either
-    // alphabetic or numeric
-
+fn tokenize_formula(formula: &str) -> Result<Vec<String>, String> {
     let mut tokens: Vec<String> = Vec::new();
-
     let mut cur = String::new();
-
     let mut sym_cap = false;
 
-    for c in input.chars() {
+    for (i, c) in formula.chars().enumerate() {
         match c {
             _ if c.is_uppercase()  => {
                 if cur.chars().count() != 0 {
@@ -54,20 +49,22 @@ fn parse_chemical_formula(input: &str) -> Vec<Comp> {
                 sym_cap = false;
                 cur.push(c);
             }
-            _ => todo!()
+            _ => return Err(format!("Invalid token '{}' encountered at position {}", c, i))
         }
     }
 
+    // Flush the currently held value
     tokens.push(cur);
+    
+    return Ok(tokens);
+}
 
-
+fn tokens_to_units(tokens: Vec<String>) -> Result<Vec<Comp>, String> {
     // Use split tokens to generate a list of formula units
-
-
     let mut cur_comp = Comp{ sym: "".to_string(), mult: 0.0 };
     let mut units: Vec<Comp> = Vec::new();
-
     let mut have_elem = false;
+
     for t in tokens.iter() {
         match t {
             _ if t.chars().all(char::is_alphabetic) => {
@@ -81,49 +78,46 @@ fn parse_chemical_formula(input: &str) -> Vec<Comp> {
             _ if t.chars().all(char::is_numeric) || t.contains(".") => {
                 cur_comp.mult = t.parse::<f64>().unwrap()
             },
-            _ => todo!()
+            _ => return Err("Invalid token string".to_string())
         }
     }
 
     units.push(cur_comp);
 
-    return units
+    Ok(units)
 }
 
-fn determine_mass(units: &Vec<Comp>) {
+fn parse_chemical_formula(input: &str) -> Result<Vec<Comp>, String> {
+    // First convert the string into just tokens that are either
+    // alphabetic or numeric
+    tokens_to_units(tokenize_formula(input)?)
+}
+
+fn determine_mass(units: Vec<Comp>) -> Result<f64, String> {
     let mut mass: f64 = 0.0;
     for u in units {
         let amu = pt::ELEMENTS.get(&u.sym);
         match amu {
             Some(amu) => mass += amu.mass * u.mult,
-            None => todo!()
+            None => return Err(format!("Element \"{}\" does not exist", u.sym))
         }
     }
 
-    println!("{}", mass);
+    Ok(mass)
 }
 
+
 fn main() {
-    let elems = get_user_input("Enter element: ");
+    let input = get_user_input("Enter element: ");
 
-    let elems = elems.split_whitespace();
+    let args = input.split_whitespace();
 
-    for sym in elems {
-        let formula = parse_chemical_formula(sym);
-        println!("{:?}", formula);
-        determine_mass(&formula);
-    }
+    for form in args {
+        let mass = parse_chemical_formula(form).and_then(determine_mass);
 
-    /*
-    for sym in elems {
-        let data = pt::ELEMENTS.get(sym);
-
-        match data {
-            Some(pt::Element{..}) => println!("{}", data.unwrap()),
-            None => println!("Element \"{}\" not found", sym)
+        match mass {
+            Err(mass) => println!("{} -> ERR: {}", form, mass),
+            Ok(mass) => println!("{} -> mass = {}", form, mass)
         }
     }
-    */
-
-
 }
